@@ -1,0 +1,16 @@
+# Dev overrides — adds resource limits but keeps permissive security context.
+# Checkov will still flag the insecure security context settings.
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+ingress:
+  enabled: true
+  tls: false  # TLS not enforced in dev

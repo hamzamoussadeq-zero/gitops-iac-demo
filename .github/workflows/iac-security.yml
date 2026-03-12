@@ -1,0 +1,118 @@
+name: IaC Security Scan
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "helm/**"
+      - ".checkov.yaml"
+  push:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - "helm/**"
+ # schedule:
+    # Weekly full scan — catches new Checkov rules applied to existing code
+   # - cron: "0 6 * * 1"
+
+# Minimal permissions — principle of least privilege for the workflow itself
+permissions:
+  contents: read
+  security-events: write  # required for SARIF upload to GitHub Security tab
+  pull-requests: write    # required for PR summary comment
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Terraform scan
+  # ---------------------------------------------------------------------------
+  checkov-terraform:
+    name: Checkov — Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
+          config_file: .checkov.yaml
+          output_format: cli,sarif
+          output_file_path: console,checkov-terraform.sarif
+          # soft_fail: true  — uncomment during initial rollout to avoid blocking PRs
+          # baseline: .checkov.baseline  — uncomment after running: checkov -d . --create-baseline
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()  # upload even if Checkov found issues (so results appear in Security tab)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-terraform.sarif
+          category: checkov-terraform
+
+  # ---------------------------------------------------------------------------
+  # Helm scan
+  # ---------------------------------------------------------------------------
+  checkov-helm:
+    name: Checkov — Helm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: helm/
+          framework: helm
+          config_file: .checkov.yaml
+          output_format: cli,sarif
+          output_file_path: console,checkov-helm.sarif
+          soft_fail: true  # Helm scanning needs tuning before hard-failing
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-helm.sarif
+          category: checkov-helm
+
+  # ---------------------------------------------------------------------------
+  # Post a summary comment on the PR (only runs on PRs, not push/schedule)
+  # ---------------------------------------------------------------------------
+  pr-summary:
+    name: PR Summary Comment
+    runs-on: ubuntu-latest
+    needs: [checkov-terraform, checkov-helm]
+    if: github.event_name == 'pull_request' && always()
+
+    steps:
+      - name: Post result summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tf  = '${{ needs.checkov-terraform.result }}';
+            const helm = '${{ needs.checkov-helm.result }}';
+            const icon = (r) => r === 'success' ? '✅' : r === 'failure' ? '❌' : '⚠️';
+            const body = [
+              '## IaC Security Scan Results',
+              '',
+              `| Framework  | Result |`,
+              `|------------|--------|`,
+              `| Terraform  | ${icon(tf)}  ${tf} |`,
+              `| Helm       | ${icon(helm)} ${helm} |`,
+              '',
+              '_Full findings are in the [Security tab](../../security/code-scanning)._',
+            ].join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

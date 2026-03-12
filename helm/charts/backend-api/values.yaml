@@ -1,0 +1,51 @@
+# Default values — intentionally permissive to demonstrate what Checkov catches.
+# Override with values-dev.yaml or values-prod.yaml.
+
+replicaCount: 1
+
+image:
+  repository: my-company/backend-api
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  host: backend-api.internal.example.com
+  tls: false  # Checkov: no TLS on ingress
+
+# No resource limits set — Checkov will flag this (pods can consume unlimited CPU/memory)
+resources: {}
+
+# -----------------------------------------------------------------------
+# [INSECURE DEFAULTS] — these trigger Checkov Kubernetes checks.
+# Override in values-prod.yaml for production workloads.
+# -----------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: false  # CKV_K8S_6:  allows running as root
+
+containerSecurityContext:
+  allowPrivilegeEscalation: true  # CKV_K8S_20: privilege escalation allowed
+  readOnlyRootFilesystem: false   # CKV_K8S_22: writable root filesystem
+  privileged: false
+  capabilities:
+    drop: []                      # CKV_K8S_28: no capabilities dropped
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+
+livenessProbe:
+  path: /health
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  path: /ready
+  initialDelaySeconds: 5
+  periodSeconds: 10

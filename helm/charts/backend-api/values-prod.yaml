@@ -1,0 +1,37 @@
+# Production overrides — all security controls hardened.
+# Checkov should pass all Kubernetes security checks on these values.
+
+replicaCount: 3
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+ingress:
+  enabled: true
+  tls: true
+  host: backend-api.prod.example.com
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
