@@ -1,23 +1,12 @@
-# =============================================================================
-# Checkov configuration for the GitOps IaC security POC
-#
-# Tuning guide:
-#   1. First run:  checkov -d . --create-baseline  (generates .checkov.baseline)
-#   2. Commit the baseline — from then on only NEW issues block PRs
-#   3. Move check IDs from skip-check to baseline as you fix or accept them
-#   4. Re-generate baseline periodically as tech debt is paid down
-# =============================================================================
-
 compact: true
 download-external-modules: false
 
-# Frameworks scanned by this config (also split per job in the workflow)
 framework:
   - terraform
   - helm
   - kubernetes
+  - dockerfile
 
-# Directories and file patterns to exclude
 exclude-path:
   - "**/.terraform"
   - "**/*.tfstate"
@@ -25,15 +14,12 @@ exclude-path:
   - "**/examples"
   - "**/tests"
 
-# Soft-fail on LOW and MEDIUM — only HIGH and CRITICAL block the PR
 soft-fail-on:
   - LOW
   - MEDIUM
 
-# =============================================================================
-# Permanently skipped checks — each entry MUST have a documented reason.
+# Permanently skipped checks — each entry must have a documented reason.
 # Treat this list as a risk register. Review quarterly.
-# =============================================================================
 skip-check:
   - CKV_GCP_114  # CMEK encryption: not in scope for this POC — tracked in ADR-001
   - CKV_GCP_38   # CSEK for VM disks: not used org-wide — approved exception SEC-042
