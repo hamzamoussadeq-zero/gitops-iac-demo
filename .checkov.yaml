@@ -7,7 +7,7 @@ framework:
   - kubernetes
   - dockerfile
 
-exclude-path:
+skip-path:
   - "**/.terraform"
   - "**/*.tfstate"
   - "**/*.tfstate.backup"
