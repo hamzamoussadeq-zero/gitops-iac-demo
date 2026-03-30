@@ -1,0 +1,13 @@
+# DEV — intentionally insecure to demonstrate Checkov findings
+# Checkov will flag: no pinned tag (CKV_DOCKER_7), running as root (CKV_DOCKER_2),
+# no USER instruction (CKV_DOCKER_3), no HEALTHCHECK (CKV_DOCKER_10)
+FROM python:latest
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD ["python", "app.py"]
