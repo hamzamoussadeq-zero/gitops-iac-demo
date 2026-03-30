@@ -73,18 +73,17 @@ jobs:
                 if (!failed.length) continue;
 
                 body += `\n---\n\n### ❌ \`${r.check_type}\` — Failed Checks\n\n`;
-                body += '| Check ID | Severity | Resource | File | Lines |\n';
-                body += '|----------|----------|----------|------|-------|\n';
+                body += '| Check ID | What it checks | Severity | Resource | File | Line |\n';
+                body += '|----------|----------------|----------|----------|------|------|\n';
 
                 for (const c of failed) {
                   const id       = c.check_id ?? '—';
-                  const sev      = c.severity ?? '—';
+                  const name     = c.check_name ?? '—';
+                  const sev      = c.severity ?? 'N/A';
                   const resource = c.resource ?? '—';
                   const file     = (c.repo_file_path ?? c.file_path ?? '—').replace(/^\//, '');
-                  const lines    = c.file_line_range
-                    ? `${c.file_line_range[0]}–${c.file_line_range[1]}`
-                    : '—';
-                  body += `| \`${id}\` | ${sev} | \`${resource}\` | \`${file}\` | ${lines} |\n`;
+                  const line     = c.file_line_range ? c.file_line_range[0] : '—';
+                  body += `| \`${id}\` | ${name} | ${sev} | \`${resource}\` | \`${file}\` | ${line} |\n`;
                 }
               }
 
