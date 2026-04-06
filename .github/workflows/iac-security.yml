@@ -1,3 +1,7 @@
+# Caller workflow — this is what lives in each individual repo.
+# It delegates to the reusable workflows defined in the central workflows repo.
+# Repos that only have Terraform drop the helm-scan job and vice versa.
+
 name: IaC Security Scan
 
 on:
@@ -5,7 +9,6 @@ on:
     paths:
       - "terraform/**"
       - "helm/**"
-      - "docker/**"
       - ".checkov.yaml"
   push:
     branches:
@@ -13,93 +16,16 @@ on:
     paths:
       - "terraform/**"
       - "helm/**"
-      - "docker/**"
-
-permissions:
-  contents: read
-  pull-requests: write
 
 jobs:
-  checkov:
-    name: Checkov Security Scan
-    runs-on: ubuntu-latest
+  terraform-scan:
+    uses: your-org/central-workflows/.github/workflows/terraform-security-scan.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Checkov
-        run: pip install checkov
-
-      - name: Run Checkov
-        id: scan
-        run: |
-          set +e
-          checkov -d . \
-            --config-file .checkov.yaml \
-            --output cli \
-            --output json \
-            --output-file-path console,results.json
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          set -e
-
-      - name: Post PR comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const exitCode = '${{ steps.scan.outputs.exit_code }}';
-            const passed = exitCode === '0';
-
-            let body = '## IaC Security Scan Results\n\n';
-
-            try {
-              const raw = JSON.parse(fs.readFileSync('results.json', 'utf8'));
-              const results = Array.isArray(raw) ? raw : [raw];
-
-              // Summary table
-              body += '### Summary\n\n';
-              body += '| Framework | ✅ Passed | ❌ Failed | ⏭ Skipped |\n';
-              body += '|-----------|----------|----------|----------|\n';
-              for (const r of results) {
-                const s = r.summary ?? {};
-                body += `| \`${r.check_type}\` | ${s.passed ?? 0} | ${s.failed ?? 0} | ${s.skipped ?? 0} |\n`;
-              }
-
-              // Per-framework failed check details
-              for (const r of results) {
-                const failed = r.results?.failed_checks ?? [];
-                if (!failed.length) continue;
-
-                body += `\n---\n\n### ❌ \`${r.check_type}\` — Failed Checks\n\n`;
-                body += '| Check ID | What it checks | Severity | Resource | File | Line |\n';
-                body += '|----------|----------------|----------|----------|------|------|\n';
-
-                for (const c of failed) {
-                  const id       = c.check_id ?? '—';
-                  const name     = c.check_name ?? '—';
-                  const sev      = c.severity ?? 'N/A';
-                  const resource = c.resource ?? '—';
-                  const file     = (c.repo_file_path ?? c.file_path ?? '—').replace(/^\//, '');
-                  const line     = c.file_line_range ? c.file_line_range[0] : '—';
-                  body += `| \`${id}\` | ${name} | ${sev} | \`${resource}\` | \`${file}\` | ${line} |\n`;
-                }
-              }
-
-              body += `\n---\n\n**Overall: ${passed ? '✅ All checks passed' : '❌ HIGH / CRITICAL issues found — merge blocked'}**`;
-
-            } catch (e) {
-              body += `> ⚠️ Could not parse scan results: ${e.message}`;
-            }
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body,
-            });
-
-      - name: Fail if violations found
-        if: steps.scan.outputs.exit_code != '0'
-        run: exit 1
+  helm-scan:
+    uses: your-org/central-workflows/.github/workflows/helm-security-scan.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
