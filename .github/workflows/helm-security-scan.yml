@@ -12,25 +12,37 @@ name: Helm Security Scan
 
 on:
   workflow_dispatch:
-    inputs:
-      directory:
-        description: Directory to scan (relative to repo root)
-        type: string
-        default: helm
   workflow_call:
-    inputs:
-      directory:
-        description: Directory to scan (relative to repo root)
-        type: string
-        default: helm
 
 jobs:
-  checkov:
-    name: Checkov — Helm
+  # ---------------------------------------------------------------------------
+  # Detect which charts changed — only scan those, not the whole repo
+  # ---------------------------------------------------------------------------
+  get-changed-charts:
+    name: Read changed charts
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Get changed charts and set matrix
+        id: set-matrix
+        uses: deliverect/gh-workflows/actions/helm/detect-changes@master
+
+  # ---------------------------------------------------------------------------
+  # Run Checkov on each changed chart in parallel
+  # ---------------------------------------------------------------------------
+  scan-chart:
+    name: Scan chart
+    needs: get-changed-charts
+    if: needs.get-changed-charts.outputs.matrix != '[]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        chart: ${{ fromJson(needs.get-changed-charts.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -43,7 +55,7 @@ jobs:
         id: scan
         run: |
           set +e
-          checkov -d ${{ inputs.directory }} \
+          checkov -d ${{ matrix.chart }} \
             --framework helm \
             --config-file .checkov.yaml \
             --output cli \
@@ -60,9 +72,10 @@ jobs:
           script: |
             const fs = require('fs');
             const exitCode = '${{ steps.scan.outputs.exit_code }}';
+            const chart = '${{ matrix.chart }}';
             const passed = exitCode === '0';
 
-            let body = '## Helm Security Scan Results\n\n';
+            let body = `## Helm Security Scan — \`${chart}\`\n\n`;
 
             try {
               const raw = JSON.parse(fs.readFileSync('results.json', 'utf8'));
@@ -110,4 +123,18 @@ jobs:
 
       - name: Fail if violations found
         if: steps.scan.outputs.exit_code != '0'
+        run: exit 1
+
+  # ---------------------------------------------------------------------------
+  # Single status check for branch protection rules
+  # (branch protection can't target a matrix job directly)
+  # ---------------------------------------------------------------------------
+  scan-status:
+    name: Helm Scan Result
+    needs: scan-chart
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check scan matrix status
+        if: needs.scan-chart.result != 'success' && needs.scan-chart.result != 'skipped'
         run: exit 1
