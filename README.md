@@ -21,7 +21,14 @@ Each Terraform repo calls `terraform-security-scan.yml` on every PR touching `.t
 Security scanning is added as steps inside the existing `helm-test` workflow — no separate workflow. Checkov runs per changed chart (same matrix the test workflow already produces) immediately after `helm template`.
 
 ### Scanning config
-`.checkov.yaml` lives in the central workflows repo and is fetched by the workflow at runtime — one place to manage skip-checks and policy across all repos.
+Two Checkov config files live in the central workflows repo, one per framework. Each workflow fetches its own config at runtime before running Checkov — one place to manage policy across all repos.
+
+| Config file | Used by |
+|---|---|
+| `.checkov.terraform.yaml` | `terraform-security-scan.yml` |
+| `.checkov.helm.yaml` | `helm-security-scan.yml` |
+
+This ensures Checkov only runs the checks relevant to each repo and skip-check exceptions are scoped to the right framework.
 
 ---
 
@@ -66,11 +73,12 @@ docker/
   Dockerfile.dev                # insecure — demonstrates Dockerfile findings
   Dockerfile.prod               # hardened reference
 
-.checkov.yaml                   # Checkov config — frameworks, skip-paths, skip-checks
+.checkov.terraform.yaml         # Checkov config for Terraform repos
+.checkov.helm.yaml              # Checkov config for Helm repos
 ```
 
 ---
 
 ## Skipped checks
 
-Any permanently skipped check must be documented in `.checkov.yaml` with a reason and a reference (ADR, ticket, or approved exception). This list is treated as a risk register and reviewed quarterly.
+Any permanently skipped check must be documented in the relevant config file with a reason and a reference (ADR, ticket, or approved exception). This list is treated as a risk register and reviewed quarterly.
