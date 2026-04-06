@@ -48,7 +48,8 @@ jobs:
             --config-file .checkov.yaml \
             --output cli \
             --output json \
-            --output-file-path console,results.json
+            --output-file-path console,results.json \
+            --quiet
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           set -e
 
