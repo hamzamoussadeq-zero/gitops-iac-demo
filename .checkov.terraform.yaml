@@ -1,0 +1,16 @@
+compact: true
+download-external-modules: false
+
+framework:
+  - terraform
+
+skip-path:
+  - "**/.terraform"
+  - "**/*.tfstate"
+  - "**/*.tfstate.backup"
+
+# Permanently skipped checks — document the reason for every entry.
+# Review quarterly.
+skip-check:
+  - CKV_GCP_114  # CMEK encryption: not in scope — ADR-001
+  - CKV_GCP_38   # CSEK for VM disks: org-wide exception — SEC-042

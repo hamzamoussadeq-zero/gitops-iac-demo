@@ -1,0 +1,13 @@
+compact: true
+
+framework:
+  - helm
+  - kubernetes
+
+skip-path:
+  - "**/tests"
+  - "**/examples"
+
+# Permanently skipped checks — document the reason for every entry.
+# Review quarterly.
+skip-check: []

@@ -36,6 +36,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fetch Checkov config
+        run: |
+          curl -sSL https://raw.githubusercontent.com/your-org/central-workflows/main/.checkov.terraform.yaml \
+            -o .checkov.yaml
+
       - name: Install Checkov
         run: pip install checkov
 
