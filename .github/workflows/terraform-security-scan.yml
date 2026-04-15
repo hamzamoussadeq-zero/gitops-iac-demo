@@ -36,11 +36,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-#      - name: Fetch Checkov config
+      - name: Fetch Checkov config
 
-#        run: |
-#          curl -sSL https://raw.githubusercontent.com/hamzamoussadeq-zero/gitops-iac-demo/main/.checkov.terraform.yaml \
-#            -o .checkov.yaml
+        run: |
+          curl -sSL https://raw.githubusercontent.com/hamzamoussadeq-zero/gitops-iac-demo/main/.checkov.terraform.yaml \
+            -o .checkov.yaml
 
       - name: Install Checkov
         run: pip install checkov
@@ -49,7 +49,7 @@ jobs:
         id: scan
         run: |
           set +e
-          checkov -d ${{ inputs.directory }} --framework terraform --config-file .checkov.terraform.yaml --output cli --output json --output-file-path console,results.json --quiet
+          checkov -d ${{ inputs.directory }} --framework terraform --config-file .checkov.yaml --output cli --output json --output-file-path console,results.json --quiet
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           set -e
 
