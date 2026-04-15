@@ -18,11 +18,7 @@ on:
         type: string
         default: terraform
   workflow_call:
-    inputs:
-      directory:
-        description: Directory to scan (relative to repo root)
-        type: string
-        default: terraform
+  
 
 jobs:
   checkov:
