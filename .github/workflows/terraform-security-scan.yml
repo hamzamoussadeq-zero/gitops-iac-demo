@@ -49,7 +49,7 @@ jobs:
         id: scan
         run: |
           set +e
-          checkov -d ${{ inputs.directory }} --framework terraform --config-file .checkov.yaml --output cli --output json --output-file-path console,results.json --quiet
+          checkov . --framework terraform --config-file .checkov.yaml --output cli --output json --output-file-path console,results.json --quiet
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           set -e
 
