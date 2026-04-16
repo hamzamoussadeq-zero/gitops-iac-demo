@@ -2,11 +2,6 @@ name: Terraform Security Scan
 
 on:
   workflow_dispatch:
-    inputs:
-      directory:
-        description: Directory to scan (relative to repo root)
-        type: string
-        default: terraform
   workflow_call:
   
 
@@ -22,11 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch Checkov config
+#      - name: Fetch Checkov config
         # TODO: Update this URL to point to where the central Checkov config is stored This allows us to maintain a single source of truth for all Checkov policies
-        run: |
-          curl -sSL https://raw.githubusercontent.com/deliverect/gh-workflows/main/<PATH>/.checkov.terraform.yaml \
-            -o .checkov.yaml
+   #     run: |
+     #     curl -sSL https://raw.githubusercontent.com/deliverect/gh-workflows/main/<PATH>/.checkov.terraform.yaml \
+     #       -o .checkov.yaml
 
       - name: Install Checkov
         run: pip install checkov==3.2.424
@@ -35,7 +30,7 @@ jobs:
         id: scan
         run: |
           set +e
-          checkov -d "${{ inputs.directory || '.' }}" --framework terraform --config-file .checkov.yaml --output cli --output json --output-file-path console,results.json --quiet
+          checkov -d . --framework terraform --config-file .checkov.terraform.yaml --output cli --output json --output-file-path console,results.json --quiet
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           set -e
 
