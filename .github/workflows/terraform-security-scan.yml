@@ -58,8 +58,6 @@ jobs:
 
                 body += `\n---\n\n`;
                 body += `<details>\n<summary>❌ <code>${r.check_type}</code> — ${failed.length} Failed Check${failed.length > 1 ? 's' : ''}</summary>\n\n`;
-                body += '| Check ID | What it checks | Severity | Resource | File | Line |\n';
-                body += '|----------|----------------|----------|----------|------|------|\n';
 
                 for (const c of failed) {
                   const id       = c.check_id ?? '—';
@@ -68,7 +66,14 @@ jobs:
                   const resource = c.resource ?? '—';
                   const file     = (c.repo_file_path ?? c.file_path ?? '—').replace(/^\//, '');
                   const line     = c.file_line_range ? c.file_line_range[0] : '—';
-                  body += `| \`${id}\` | ${name} | ${sev} | \`${resource}\` | \`${file}\` | ${line} |\n`;
+
+                  body += `<details>\n<summary><code>${id}</code> — ${name} (${sev})</summary>\n\n`;
+                  body += `| Field | Value |\n`;
+                  body += `|-------|-------|\n`;
+                  body += `| **Resource** | \`${resource}\` |\n`;
+                  body += `| **File** | \`${file}\` |\n`;
+                  body += `| **Line** | ${line} |\n\n`;
+                  body += `</details>\n`;
                 }
 
                 body += '\n</details>\n';
