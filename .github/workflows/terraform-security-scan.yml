@@ -17,12 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-#      - name: Fetch Checkov config
-        # TODO: Update this URL to point to where the central Checkov config is stored This allows us to maintain a single source of truth for all Checkov policies
-   #     run: |
-     #     curl -sSL https://raw.githubusercontent.com/deliverect/gh-workflows/main/<PATH>/.checkov.terraform.yaml \
-     #       -o .checkov.yaml
-
       - name: Install Checkov
         run: pip install checkov==3.2.424
 
@@ -30,7 +24,7 @@ jobs:
         id: scan
         run: |
           set +e
-          checkov -d . --framework terraform --config-file .checkov.terraform.yaml --output cli --output json --output-file-path console,results.json --quiet
+          checkov -d . --framework terraform --output cli --output json --output-file-path console,results.json --quiet
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           set -e
 
@@ -61,7 +55,8 @@ jobs:
                 const failed = r.results?.failed_checks ?? [];
                 if (!failed.length) continue;
 
-                body += `\n---\n\n### ❌ \`${r.check_type}\` — Failed Checks\n\n`;
+                body += `\n---\n\n`;
+                body += `<details>\n<summary>❌ <code>${r.check_type}</code> — ${failed.length} Failed Check${failed.length > 1 ? 's' : ''}</summary>\n\n`;
                 body += '| Check ID | What it checks | Severity | Resource | File | Line |\n';
                 body += '|----------|----------------|----------|----------|------|------|\n';
 
@@ -74,6 +69,8 @@ jobs:
                   const line     = c.file_line_range ? c.file_line_range[0] : '—';
                   body += `| \`${id}\` | ${name} | ${sev} | \`${resource}\` | \`${file}\` | ${line} |\n`;
                 }
+
+                body += '\n</details>\n';
               }
 
               body += `\n---\n\n**Overall: ${passed ? '✅ All checks passed' : '❌ Issues found — merge blocked'}**`;
